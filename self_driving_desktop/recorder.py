@@ -22,10 +22,14 @@ outfile=None
 lasttime=None
 
 def lookup_keysym(keysym):
-    for name in dir(XK):
-        if name[:3] == "XK_" and getattr(XK, name) == keysym:
-            return name[3:]
-    return "[%d]" % keysym
+    return next(
+        (
+            name[3:]
+            for name in dir(XK)
+            if name[:3] == "XK_" and getattr(XK, name) == keysym
+        ),
+        "[%d]" % keysym,
+    )
 
 def record_callback(reply):
     global lasttime
@@ -53,9 +57,9 @@ def record_callback(reply):
             outfile.write("  sleep %f;\n" % tmicro)
 
             keysym = local_dpy.keycode_to_keysym(event.detail, 0)
+            key = None
             if not keysym:
                 lasttime = currtime
-                key = None
                 try:
                     key = KEYMAP[event.detail]
                 except:
@@ -63,11 +67,10 @@ def record_callback(reply):
                     key = event.detail
 
                 outfile.write("  k%s \"%s\";  # KeyCode\n" % (kd, key))
-                # print("KeyCode%s" % pr, event.detail)
+                            # print("KeyCode%s" % pr, event.detail)
             else:
                 lasttime = currtime
                 key1 = lookup_keysym(keysym).lower()
-                key = None
                 try:
                     key = KEYMAP[key1]
                 except:
@@ -75,14 +78,13 @@ def record_callback(reply):
                     key = key1
 
                 outfile.write("  k%s \"%s\";  # KeyStr\n" % (kd, key))
-                # print("KeyStr%s" % pr, key)
+                            # print("KeyStr%s" % pr, key)
 
             if event.type == X.KeyPress and keysym == XK.XK_Escape:
                 local_dpy.record_disable_context(ctx)
                 local_dpy.flush()
                 return
 
-        # STAY HERE
         elif event.type == X.ButtonPress:
             lasttime = currtime
             print("ButtonPress", event.detail)
